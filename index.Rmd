@@ -1,0 +1,169 @@
+---
+title: "Datos policiales 2021"
+author: "Sofia Carpio Jimenez"
+date: '2022-06-20'
+output:  
+  html_document:
+    code_folding: hide
+    theme: readable
+    toc: true
+    toc_depth: 5
+    toc_float:
+      collapsed: false
+      smooth_scroll: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introducción 
+Este sitio web muestra los datos estadisticos del Organismo de Investigación Juficial (OIJ) en el año 2021, obtenidos en [página web de datos abiertos del OIJ](https://sitiooij.poder-judicial.go.cr/index.php/ayuda/servicios-policiales/servicios-a-organizaciones/indice-de-transparencia-del-sector-publico-costarricense/datos-abiertos). Estos datos muestran información relacionada con delitos, fechas, víctimas, género, edad, provincias y cantones, los cuales se mostraran por medio de tablas y distintos gráficos.  
+
+## Herramientas de desarrollo 
+
+### Paquetes de R 
+La información fue desarrollada en el lenguaje de programación R utilizando la extensión de R Markdown, con los paquetes de **DT**, **ggplot2**, **dplyr**, **plotly**, **lubridate** y **readxl**. 
+
+```{r carga-paquetes, message=FALSE}
+# Carga de paquetes de R 
+
+library(DT)
+library(ggplot2)
+library(dplyr)
+library(plotly)
+library(lubridate)
+library(readxl)
+```
+
+### Registros de delitos en el 2021 
+
+```{r lectura-datos, message=FALSE}
+delitos <- readxl::read_excel("C:/Users/kaky-/Documents/Sofía/III SEMESTRE 2022/Procesamiento Datos Geográficos/Datos-policiales-2021/Datos-policiales-2021-/estadisticaspoliciales2021.xls") 
+```
+
+# Visualización de la información 
+
+## Tabla
+Se presenta a continuación una tabla interactiva del paquete **DT**, la cual se clasifica en ciertas columnas de interés. 
+
+```{r transformación-datos, message=FALSE}
+# Transformación de datos 
+delitos <-
+  delitos %>%
+  select(Delito,
+         FECHA = Fecha,
+         Victima,
+         Edad,
+         Genero,
+         Provincia,
+         Canton) %>%
+  mutate(FECHA = as.Date(FECHA, format = "%Y/%m/%d"))
+```
+
+
+```{r tabla-registros-delitos, message=FALSE}
+# Tabla interactiva del paquete DT
+delitos %>% 
+  DT::datatable(
+    options = list(
+      pageLength = 8,
+      language = list(url = '//cdn.datatables.net/plug-ins/1.10.11/i18n/Spanish.json')
+    ),
+    colnames = c(
+      "Delito",
+      "Fecha",
+      "Víctima",
+      "Edad",
+      "Género",
+      "Provincia", 
+      "Cantón"
+    )
+  )
+```
+
+## Gráficos 
+
+Se presenta un gráfico de barras simples el cual muestra la cantidad de delitos por tipos de delitos, generado con **ggplot2** y que se traduce a **plotly**. 
+
+```{r grafico-barras-simples-por-delito, message=FALSE}
+# Gráfico de barras simples de cantidad de delitos por tipo 
+
+grafico_x_delito <-
+  delitos %>%
+  count(Delito) %>% 
+  ggplot(aes(x = reorder(Delito, n), y = n)) +
+  geom_bar(stat = "identity") +
+  ggtitle("CANTIDAD DE DELITOS POR TIPO DE DELITOS") +
+  xlab("TIPO DE DELITO") +
+  ylab("CANTIDAD DE DELITOS") +
+  coord_flip() + 
+  theme_minimal()
+
+ggplotly(grafico_x_delito)
+```
+
+Se presenta un gráfico de barras simples el cual muestra la cantidad de delitos por mes del año, generado con *ggplot2* y que se traduce a *plotly*.
+
+```{r grafico-barras-simples-por-mes, message=FALSE}
+# Gráfico de barras simples de cantidad de delitos por mes 
+
+grafico_x_mes <-
+  delitos %>%
+  count(FECHA) %>%
+  ggplot(aes(x = reorder(FECHA, n), y = n)) +
+  geom_bar(stat = "identity") +
+  ggtitle("Cantidad de delitos por mes del año") +
+  xlab("Meses") +
+  ylab("Cantidad de delitos") +
+  coord_flip() + 
+  theme_classic()
+lubridate::month()
+
+ggplotly(grafico_x_mes)
+```
+
+
+Se presenta un gráfico de barras apiladas el cual cada barra es un tipo de delito que muestra la proporción por género, creado con **ggplot2** y que se traduce a **plotly**. 
+
+```{r grafico-barras-apiladas-por-genero,message=FALSE}
+# Gráfico de barras apiladas de proporciones por genero 
+grafico_barras_apiladas_proporciones <-
+  delitos %>%
+  ggplot(aes(x = Delito, fill = Genero)) +
+  geom_bar(position = "fill") +
+  ggtitle("PROPORCIONES DE DELITOS POR GÉNERO") +
+  xlab("TIPO DE DELITO") +
+  ylab("PROPORCIÓN") +
+  labs(fill = "GÉNERO") +
+  coord_flip() +
+  theme_minimal()
+
+ggplotly(grafico_barras_apiladas_proporciones)
+```
+
+
+Se presenta un gráfico de barras simples el cual muestra la cantidad de delitos efectuados en los cantones de San José, Cartago, Alajuela y Heredia, generado con *ggplot2* y que se traduce a *plotly*. 
+
+```{r grafico-barras-simples-por-canton, message=FALSE}
+# Gráfico de barras simples de delitos por canton 
+grafico_barras_simples_canton <- delitos %>%
+  count(Canton, Delito) %>% 
+  ggplot(aes(x = reorder(Canton, Delito), y = Delito)) +
+  geom_bar(stat = "identity") +
+  ggtitle("Cantidad de delitos por cantón") +
+  xlab("Cantón") +
+  ylab("Cantidad de delitos") +
+  coord_flip() + 
+  theme_minimal()
+
+
+delitos %>%
+  filter(Canton=="San Jose","Cartago","Heredia","Alajuela") %>%
+
+ggplotly(grafico_barras_simples_canton)
+
+```
+
+
+
